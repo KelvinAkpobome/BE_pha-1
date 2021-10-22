@@ -1,0 +1,59 @@
+{
+  "name": "Pha",
+  "version": "1.0.0",
+  "description": "App to make properties search in Port Harcourt easier",
+  "main": "app.js",
+  "scripts": {
+    "start": "node server",
+    "dev": "cross-env NODE_ENV=development nodemon server",
+    "server:prod": "cross-env NODE_ENV=production nodemon server.js",
+    "test": "cross-env NODE_ENV=test mocha test --timeout 30000 --recursive --exit",
+    "test:silent": "cross-env NODE_ENV=test mocha test --reporter min --timeout 30000 --recursive --exit",
+    "test:unit": "cross-env NODE_ENV=test mocha test/unit --timeout 30000 --recursive --exit",
+    "test:integration": "cross-env NODE_ENV=test mocha test/integration --timeout 30000 --recursive --exit",
+    "coverage": "cross-env NODE_ENV=test nyc --reporter=html --reporter=text yarn test",
+    "format": "prettier -w .",
+    "lint": "eslint "
+  },
+  "engines": {
+    "node": "^14.x"
+  },
+  "author": "Kelvin",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.19.0",
+    "cloudinary": "^1.26.1",
+    "cookie-parser": "^1.4.5",
+    "dot-env": "0.0.1",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "express-session": "^1.17.2",
+    "express-rate-limit": "^5.3.0",
+    "jsonwebtoken": "^8.5.1",
+    "mailgun-js": "^0.22.0",
+    "method-override": "^3.0.0",
+    "mongoose": "^5.12.14",
+    "multer": "^1.4.2",
+    "multer-storage-cloudinary": "^4.0.0",
+    "nodemailer": "^6.6.2",
+    "passport": "^0.4.1",
+    "passport-local": "^1.0.0",
+    "request": "^2.88.2",
+    "should": "^13.2.3",
+    "supertest": "^4.0.2",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "ejs-lint": "^1.1.0",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.1.0",
+    "eslint-plugin-import": "^2.21.1",
+    "chai-http": "^4.3.0",
+    "chai": "^4.3.4",
+    "cross-env": "^7.0.3",
+    "@hapi/joi": "^17.1.1",
+    "mocha": "^9.1.3",
+    "nodemon": "^2.0.7"
+  }
+}
