@@ -27,7 +27,7 @@ const userSchema = Joi.object({
 
 const users = [
   {
-    email: 'adefemi101@gmail.com',
+    email: 'kelvinakpobome@gmail.com',
     password: '123456abc',
     first_name: 'kelvin',
     last_name: 'Akpobome',
