@@ -45,5 +45,4 @@ web_modules/
 .idea/
 .vscode
 nbproject
-package-lock.json
 log.csv
