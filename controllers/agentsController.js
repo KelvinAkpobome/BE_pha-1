@@ -1,147 +1,142 @@
-const Agent = require('../models/Agent.js');
 const bcrypt = require('bcryptjs');
+const { db } = require('../config/db');
 const jsonWT = require('../utils/auth-token');
 const catchAsync = require('../utils/catchAsync');
-const logger = require('../utils/logger.js');
+const logger = require('../utils/logger');
 const sendmail = require('../utils/sendEmail');
-const {
-    successResMsg,
-    errorResMsg,
-    sessionSuccessResMsg,
-  } = require('../Utils/response');
+const { successResMsg, errorResMsg } = require('../utils/response');
+const { agentSchema } = require('../schemas');
 
-const URL =
-  process.env.NODE_ENV === 'development'
-    ? process.env.DEV_URL
-    : process.env.LIVE_URL;
+const URL = process.env.NODE_ENV === 'development' ? process.env.DEV_URL : process.env.LIVE_URL;
 
 exports.registerAgent = catchAsync(async (req, res, next) => {
-      // Search for all registered Agent
-    try {
-        logger.info(`Started getting Agent with Phone number: ${req.body.phoneNo}`);
-        const foundAgent = await Agent.findOne({phone_no: req.body.phoneNo }, 'phone_no').exec();
-        if (!foundAgent){
-            // encrypt password
-            const salt = bcrypt.genSaltSync(10);
-            const hashPassword = bcrypt.hashSync(req.body.password, salt);
+  const {
+    first_name, last_name, password, email, phone_no,
+  } = req.body;
+    // Search for all registered Agent
+  try {
+    logger.info('Validating the req.body');
+    const validatedAgentFields = await agentSchema.validateAsync(req.body);
+    logger.info(`Started search for Agent with Phone number: ${phone_no}`);
+    const foundAgent = await db.collection('agents').findOne({ email });
 
-            //generate verification token
-            const fullname = `${req.body.firstName} ${req.body.lastName}`;
-            const basicInfo = {
-                email: req.body.email,
-                username: fullname,
-            };
-  
-            const token = jsonWT.signJWT(basicInfo, '1h');
-            const userData = {
-                first_name: req.body.firstName,
-                last_name: req.body.lastName,
-                email: basicInfo.email,
-                phone_no: req.body.phoneNo,
-                password: hashPassword,
-                username: fullname,
-                verification_token: token,
-                address: req.body.address
-            };
+    if (foundAgent == null) {
+      logger.info(`Creating agents data with Phone number: ${phone_no}`);
 
-            await Agent.create(userData);
+      // encrypt password
+      const salt = bcrypt.genSaltSync(10);
+      const hashPassword = bcrypt.hashSync(password, salt);
 
-            // mail verification code to the student
-            const verificationUrl = `${URL}/v1/auth/email/verify/?verification_code=${token}`;
-  
-            const message = ` Hi ${fullname} thanks for registering, kindly verify your email </p><a href ='${verificationUrl}'>Token</a>`;
-      
-            await sendmail({
-                from: process.env.FROM_EMAIL,
-                to: basicInfo.email,
-                subject: 'Email Verification',
-                text: message
-            });
-            const data = { message: `Verification email sent to ${basicInfo.email}!, please verify account to proceed`, token };
-            successResMsg(res, 201, data);
-        }else {
-            errorResMsg(res, 403, `An Agent has already registered ${basicInfo.email}`);
-        }
-    }catch (err) {
-        logger.info('No agent found');
-        console.log(err);
-        errorResMsg(res, 401, `No agent found`);
+      // generate verification token
+      const fullname = `${first_name} ${last_name}`;
+      const basicInfo = {
+        email,
+        username: fullname,
+      };
+
+      const token = jsonWT.signJWT(basicInfo, '1h');
+
+      // populate validatedAgentFields object
+      validatedAgentFields.username = fullname;
+      validatedAgentFields.verification_token = token;
+      validatedAgentFields.password = hashPassword;
+
+      // save agent details
+      await db.collection('agents').insertOne(validatedAgentFields);
+
+      // mail verification code to the agent
+      const verificationUrl = `${URL}/v1/auth/email/verify/?verification_code=${token}`;
+
+      const message = ` Hi ${fullname} thanks for registering, kindly verify your email </p><a href ='${verificationUrl}'>Token</a>`;
+
+      await sendmail({
+        from: process.env.FROM_EMAIL,
+        to: basicInfo.email,
+        subject: 'Email Verification',
+        text: message,
+      });
+      const data = { message: `Verification email sent to ${basicInfo.email}!, please verify account to proceed`, token };
+      return successResMsg(res, 201, data);
     }
-})
+    return errorResMsg(res, 403, `An agent already registered with ${email}`);
+  } catch (err) {
+    logger.error(err.message);
+    return errorResMsg(res, 401, err.message);
+  }
+});
 
 exports.verifyEmail = catchAsync(async (req, res, next) => {
-    try {
-      // obtain verification token from url and verify
-      const { verification_code } = req.query;
-      const decoded = jsonWT.verifyJWT(verification_code);
-  
-      // check token expiration
-      if (Date.now() <= decoded.exp + Date.now() + 60 * 60) {
-        const user = await Agent.findOneAndUpdate({email : decoded.email}, {status: 1, email_verified_at: Date.now() }, {useFindAndModify: false})
-  
-        if (!user) return errorResMsg(res, 404, `Email is not registered with us`);
-        if (user.status === 1 ) return errorResMsg(res, 401, `${decoded.email} has already been verified`);
+  try {
+    // obtain verification token from url and verify
+    const { verification_code } = req.query;
+    const decoded = jsonWT.verifyJWT(verification_code);
 
+    // check token expiration
+    if (Date.now() <= decoded.exp + Date.now() + 60 * 60) {
+      const user = await db.collection('agents').updateOne({ email: decoded.email }, { $set: { status: '1', email_verified_at: Date.now() } });
 
-        const data = { message: 'Email verification successful, You can now log in.' };
-        return successResMsg(res, 200, data);
-      } else {
-        return errorResMsg(res, 400, 'Invalid or expired token');
-      }
-    } catch (err) {
-        logger.info('No token found');
-        console.log(err);
-        errorResMsg(res, 401, `No token found`);
+      if (!user) return errorResMsg(res, 404, 'Email is not registered with us');
+      if (user.status === 1) return errorResMsg(res, 401, `${decoded.email} has already been verified`);
+
+      const data = { message: 'Email verification successful, You can now log in.' };
+      return successResMsg(res, 200, data);
     }
-  });
+    return errorResMsg(res, 400, 'Invalid or expired token');
+  } catch (err) {
+    logger.error(err.message);
+    errorResMsg(res, 401, err.message);
+  }
+});
 
 exports.loginAgent = catchAsync(async (req, res, next) => {
-    const { email } = req.body;
-    const { password } = req.body;
-    try{
-        let currentUser = await Agent.findOne( { email } ) // confirm user email
-        if(!currentUser){
-            return errorResMsg(
-                res,
-                404,
-                `Incorrect login details, ${email} does not exist` // if email is not found, return error msg
-        )};
-        if(currentUser.status === 0) {
-            return errorResMsg(res, 401, `${email} is not verified, please verify before trying to login`);
-        }
-        if (currentUser.block) return errorResMsg(res, 401, `Agent with email-${email} is blocked!`);
-    
-        let valid = await bcrypt.compare(password, currentUser.password)
-        if (!valid) return errorResMsg(res, 401, 'Password incorrect');
+  if (!req.body.email || !req.body.password) {
+    logger.error('Please enter details correctly');
+    return errorResMsg(res, 404, 'Please enter details correctly');
+  }
+  const { email, password } = req.body;
 
-        const data = {
-            email: currentUser.email,
-            userId: currentUser._id.toString(),
-            userRole: currentUser.role,
-        };
+  try {
+    const currentUser = await db.collection('agents').findOne({ email }); // confirm user email
+    if (currentUser == null) {
+      logger.error(`${email} does not exist`);
+      return errorResMsg(
+        res,
+        404,
+        `${email} does not exist`, // if email is not found, return error msg
+      );
+    }
+    if (currentUser.status === 0) {
+      logger.error(`${email} is not verified, please verify before trying to login`);
+      return errorResMsg(res, 401, `${email} is not verified, please verify before trying to login`);
+    }
+    if (currentUser.block) return errorResMsg(res, 401, `Agent with email-${email} is blocked!`);
 
-        const time = '1h';
+    const valid = await bcrypt.compare(password, currentUser.password);
+    if (!valid) return errorResMsg(res, 401, 'Password incorrect');
 
-        const token = await jsonWT.signJWT(data, time);
-        await Agent.findOneAndUpdate({email : currentUser.email}, {verification_token: token}, {useFindAndModify: false})
-        return res.header('x-auth-token', token).status(200).send({
-            status: "Success",
-            data: {
-                message: "Login Successful",
-                token
-            }
-        })
-
-    }catch(err){
-        logger.info('No agent found');
-        console.log(err);
-        errorResMsg(res, 401, `No agent found`);
+    const data = {
+      email: currentUser.email,
+      userId: currentUser._id.toString(),
+      userRole: currentUser.role,
     };
-})
+
+    const time = '1h';
+    const token = await jsonWT.signJWT(data, time);
+    await db.collection('agents').updateOne({ email: currentUser.email }, { $set: { verification_token: token } });
+    return res.header('x-auth-token', token).status(200).send({
+      status: 'Success',
+      data: {
+        message: 'Login Successful',
+        token,
+      },
+    });
+  } catch (err) {
+    logger.error(err.message);
+    errorResMsg(res, 401, err.message);
+  }
+});
 
 // exports.logout = function(req, res) {
 //     res.cookie('jwt', '', {maxAge: 1});
 //     res.redirect('/');
 // }
-
-

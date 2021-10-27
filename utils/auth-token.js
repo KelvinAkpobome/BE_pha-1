@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 
-//load config
-dotenv.config({path: './config/config.env'});
+// load config
+dotenv.config({ path: './config/config.env' });
 
 exports.signJWT = (data, time = '1d') => {
   const secret = process.env.JWT_SECRET;

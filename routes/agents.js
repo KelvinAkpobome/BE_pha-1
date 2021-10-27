@@ -1,22 +1,26 @@
 const express = require('express');
+
 const router = express.Router();
-router.use(express.json());
 const agent = require('../controllers/agentsController');
 
-
-
-//Registration handle
 router.post('/register/agent', agent.registerAgent);
-// router.post('/register/client', Auth.registerClient);
+router.post('/login/agent', agent.loginAgent);
+// router.get('/', (req, res) => {
+//     return res.status(200).send('Welcome to PHA API')
+// });
 
-//login handle
-router.post('/login', agent.loginAgent);
-router.get('/email/verify/', agent.verifyEmail);
+//   router.post('/only-owner', verifyToken, checkIsValidUser, requireRoles(['owner']), (req, res) => {
+//     res.status(200).json({
+//       status: 'success',
+//       message: 'Logged in user is owner, and hence, is granted access.',
+//     });
+//   });
 
-// //logout handle
-// router.get('/logout', Auth.logout);
-
-// //forgot password
-// router.post('/password-reset', Auth.passwordReset);
+//   router.post('/only-user', verifyToken, checkIsValidUser, requireRoles(['user']), (req, res) => {
+//     res.status(200).json({
+//       status: 'success',
+//       message: 'Logged in user is user, and hence, is granted access.',
+//     });
+//   });
 
 module.exports = router;

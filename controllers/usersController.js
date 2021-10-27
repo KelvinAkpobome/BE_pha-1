@@ -1,74 +1,69 @@
-const log = console.log;
+const { log } = console;
+const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
 const Agent = require('../models/Agent.js');
 const Client = require('../models/Client.js');
-const bcrypt = require('bcryptjs');
-const {createToken} = require('../services/jwtService');
+const { createToken } = require('../services/jwtService');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const logger = require('../utils/logger.js');
-const nodemailer = require("nodemailer");
 
+exports.registerAgent = catchAsync(async (req, res, next) => {});
+// to be refactored
+exports.registerAgent = function (req, res) {
+  // check if user with this email address exists
+  Agent.findOne({ email: req.body.email }, (err, userExists) => {
+    if (err) return res.status(500).json({ err });
+    if (userExists) return res.status(400).json({ msg: 'User with this email address already exists' });
+    // create a new user
+    Agent.create({ ...req.body }, (err, newAgent) => {
+      if (err) return res.status(500).json({ err });
+      // hash user password
+      bcrypt.genSalt(10, (err, salt) => {
+        if (err) return res.status(500).json({ err });
+        bcrypt.hash(req.body.password, salt, (err, hashedPassword) => {
+          if (err) return res.status(500).json({ err });
+          // save password to user data in the db
+          newAgent.password = hashedPassword;
+          newAgent.save((err, savedUser) => {
+            if (err) return res.status(500).json({ err });
 
-exports.registerAgent = catchAsync(async (req, res, next) => {})
-//to be refactored
-exports.registerAgent = function(req, res) {
-	//check if user with this email address exists
-    Agent.findOne({email: req.body.email}, (err, userExists)=> {
-        if (err) return res.status(500).json({err});
-        if (userExists) return res.status(400).json({"msg": "User with this email address already exists"});
-        //create a new user
-        Agent.create({...req.body}, (err, newAgent)=> {
-            if (err) return res.status(500).json({err});
-            //hash user password
-            bcrypt.genSalt(10, (err, salt)=> {
-                if (err) return res.status(500).json({err});
-                bcrypt.hash(req.body.password, salt, (err, hashedPassword)=> {
-                    if (err) return res.status(500).json({err});
-                    //save password to user data in the db
-                    newAgent.password = hashedPassword;
-                    newAgent.save((err, savedUser)=> {
-                        if (err) return res.status(500).json({err});
-                        else {
-                            req.flash("success_msg", "You are now registered and can login");
-                            res.redirect('/login');
-                        }
-                    });
-                });
-            });
-
+            req.flash('success_msg', 'You are now registered and can login');
+            res.redirect('/login');
+          });
         });
+      });
     });
-}
+  });
+};
 
-exports.loginAgent = async(req, res)=> {
-	//Check if user exists
-    const user = await Agent.findOne({email: req.body.email}, (err, agent)=> { if (err) return res.status(500).json({err})}) || await Client.findOne({email: req.body.email}, (err, client)=> { if (err) return res.status(500).json({err})});
-    if (!user) req.flash("success_msg", "Incorrect email address");
-    else {
-        //check if password is correct
-        let match = bcrypt.compareSync(req.body.password, user.password);
-        log(match);
-        if (!match) { 
-            req.flash("success_msg", "Incorrect password");
-            //return res.status(401).json({"msg": "Incorrect password"});
-        }
-        //create token
-        let token = createToken(user);
-        //if (!token) return res.status(500).redirect("/users/login");
-        if (!token) return res.status(500).json({"msg": "Unable to authenticate"});
-        else {
-            res.cookie('jwt', token, {maxAge: 604800, httpOnly: true});
-            //log(res.locals.user);
-            return res.status(200).redirect('/');
-        }             
+exports.loginAgent = async (req, res) => {
+  // Check if user exists
+  const user = await Agent.findOne({ email: req.body.email }, (err, agent) => { if (err) return res.status(500).json({ err }); }) || await Client.findOne({ email: req.body.email }, (err, client) => { if (err) return res.status(500).json({ err }); });
+  if (!user) req.flash('success_msg', 'Incorrect email address');
+  else {
+    // check if password is correct
+    const match = bcrypt.compareSync(req.body.password, user.password);
+    log(match);
+    if (!match) {
+      req.flash('success_msg', 'Incorrect password');
+      // return res.status(401).json({"msg": "Incorrect password"});
     }
-}
+    // create token
+    const token = createToken(user);
+    // if (!token) return res.status(500).redirect("/users/login");
+    if (!token) return res.status(500).json({ msg: 'Unable to authenticate' });
 
-exports.logout = function(req, res) {
-    res.cookie('jwt', '', {maxAge: 1});
-    res.redirect('/');
-}
+    res.cookie('jwt', token, { maxAge: 604800, httpOnly: true });
+    // log(res.locals.user);
+    return res.status(200).redirect('/');
+  }
+};
 
+exports.logout = function (req, res) {
+  res.cookie('jwt', '', { maxAge: 1 });
+  res.redirect('/');
+};
 
 // exports.passwordReset = async(req, res)=> {
 //     //find email in the db
@@ -126,5 +121,5 @@ exports.logout = function(req, res) {
 //                 });
 //             }
 //         }
-//     }   
+//     }
 // }
