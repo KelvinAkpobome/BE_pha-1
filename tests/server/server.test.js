@@ -1,12 +1,11 @@
 describe('Server', () => {
-  let boot; let
-    shutdown;
-  before(() => {
-    boot = require('../../server').boot;
+  const { boot } = require('../../server');
+  after(() => {
+    require('../../server').shutdown();
   });
 
-  describe('GETs', () => {
-    it('test server is up ', () => {
+  describe('Server start up test', () => {
+    it('test server is up and listening for requests ', () => {
       chai.request(boot)
         .post('/api/v1/')
         .end((err, res) => {
@@ -15,9 +14,5 @@ describe('Server', () => {
           expect(res.status).equal(200, 'Server is not booting up');
         });
     });
-  });
-
-  after(() => {
-    shutdown = require('../../server').shutdown;
   });
 });

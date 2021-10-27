@@ -1,10 +1,8 @@
 describe('Controllers test', () => {
-  let boot; let
-    shutdown;
-  before(() => {
-    boot = require('../../server').boot;
+  const { boot } = require('../../server');
+  after(() => {
+    require('../../server').shutdown();
   });
-
   describe('POST /api/v1/register/agent', () => {
     it('It should create a new agent in the DB', (done) => {
       const user = {
@@ -31,21 +29,12 @@ describe('Controllers test', () => {
         .send(user)
         .end((err, res) => {
           if (err) console.log(err);
-
-          res.should.have.status(2);
-          res.body.data.should.be.a('object');
-          res.body.should.have.property('first_name');
-          res.body.data.should.have.property('last_name');
-          res.body.data.should.have.property('email');
-          res.body.data.should.have.property('username');
-          res.body.data.should.have.property('address');
-          res.body.data.should.have.property('password');
+          expect(res).to.be.json;
+          expect(res).to.have.status(20000);
+          expect(err).to.not.be.an('error');
+          expect(res.body).to.have.property('status', 'success');
         });
       done();
     });
-  });
-
-  after(() => {
-    shutdown = require('../../server').shutdown;
   });
 });

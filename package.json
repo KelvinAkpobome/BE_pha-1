@@ -11,7 +11,7 @@
     "test:controllers": "cross-env NODE_ENV=test mocha tests/controllers/*.test.js -r tests/testhelper.js -R spec  --timeout 30000 --recursive --exit",
     "test": "cross-env NODE_ENV=test mocha -r tests/testhelper.js -R spec tests/**/*.test.js --timeout 30000 --recursive --exit",
     "test:silent": "cross-env NODE_ENV=test mocha tests --reporter min --timeout 30000 --recursive --exit",
-    "test:unit": "cross-env NODE_ENV=test mocha -r tests/testhelper.js --file tests/server/server.test.js tests/**/*.test.js --timeout 30000 --recursive --exit",
+    "test:unit": "cross-env NODE_ENV=test mocha -r tests/testhelper.js tests/**/*.test.js --timeout 30000 --recursive --exit",
     "test:integration": "cross-env NODE_ENV=test mocha tests/integration --timeout 30000 --recursive --exit",
     "coverage": "cross-env NODE_ENV=test nyc --reporter=html --reporter=text yarn test",
     "format": "prettier -w .",

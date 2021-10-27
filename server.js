@@ -1,28 +1,33 @@
 /* eslint-disable no-console */
-const express = require('express');
+const http = require('http');
 const { connectDB } = require('./config/db');
 
 const PORT = process.env.PORT || 4000;
+
+// fully configured express app
 configuredApp = require('./configure');
 
-app = express();
-
+// connection to db
 connectDB().catch(console.dir);
 
-Expressapp = configuredApp(app);
+const server = http.createServer(configuredApp);
 
+// boot the server
 const boot = () => {
-  Expressapp.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.info(`Express server listening on port ${PORT}`);
   });
 };
+
+// kill the server
 const shutdown = () => {
-  Expressapp.close();
+  server.close(() => {
+    console.info(`Express server shutting down on port ${PORT}`);
+  });
 };
 if (require.main === module) {
   boot(); // "node app.js" command
 } else {
-  console.info('Running app as a module');
   exports.boot = boot;
   exports.shutdown = shutdown;
 }
