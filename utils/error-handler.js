@@ -2,11 +2,11 @@
 /* eslint-disable no-unused-vars */
 // eslint-disable-next-line no-unused-vars
 const { request, response } = require('express');
-const logger = require('./logger.js');
 const dotenv = require('dotenv');
+const logger = require('./logger.js');
 
-//load config
-dotenv.config({path: './config/config.env'});
+// load config
+dotenv.config({ path: './config/config.env' });
 /**
  * Error handler for development env.
  * @param {error} err Error object
