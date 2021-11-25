@@ -1,53 +1,41 @@
-const { log } = console;
-const Agent = require('../models/Agent');
-const Client = require('../models/Client');
-const { decodeToken } = require('../services/jwtService');
-
-const secret = process.env.JWT_SECRET;
-const jwt = require('jsonwebtoken');
+const { errorResMsg } = require('../utils/response');
+const { verifyJWT } = require('../utils/auth-token');
+const logger = require('../utils/logger');
 
 exports.verifyToken = async (req, res, next) => {
-  const token = req.cookies.jwt || '';
+  const token = req.header('x-auth-token') || false;
   try {
-    if (!token) {
-      req.flash('error_msg', 'You are not logged in');
-      return res.redirect('/');
+    if (token) {
+      const decoded = await verifyJWT(token);
+      if (decoded.email) {
+        req.user = {
+          email: decoded.email,
+          role: decoded.role,
+        };
+        return next();
+      }
+      const reason = decoded.message.split(' ')[2];
+      if (reason === 'expired') return errorResMsg(res, 401, 'Session has expired, login again');
     }
-    const decoded = await decodeToken(token);
 
-    req.user = {
-      id: decoded.id,
-      email: decoded.email,
-    };
-    next();
+    return errorResMsg(res, 403, 'You are not logged in');
   } catch (err) {
-    return next(err);
+    logger.error(err.message);
+    return errorResMsg(res, 401, err.message);
   }
 };
 
-exports.checkUser = async (req, res, next) => {
-  const token = req.cookies.jwt || '';
-  if (!token) {
-    res.locals.user = null;
-    // return res.redirect('/login');
-    return next();
-  }
-
-  const decodedToken = decodeToken(token);
-  const user = await Agent.findById(decodedToken.id) || await Client.findById(decodedToken.id);
-  res.locals.user = user;
-  // log(user);
-  return next();
-
-  // next();
-};
-
-exports.checkIfAgent = function (req, res, next) {
-  if (req.user.role !== 'Agent') return res.status(401).json({ message: 'This route is restricted to real estate agent users' });
+exports.checkIfAgent = (req, res, next) => {
+  if (req.user.role === 'client') return errorResMsg(res, 403, 'This route is restricted to agent users');
   return next();
 };
 
-// exports.checkIfClient = function(req, res, next) {
-//  if (req.user.role !== 'Client') return res.status(401).json({message: 'This route is restricted to client users'});
-//  return next();
-// }
+exports.checkIfClient = (req, res, next) => {
+  if (req.user.role === 'agent') return errorResMsg(res, 403, 'This route is restricted to client users');
+  return next();
+};
+
+exports.checkIfAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') return errorResMsg(res, 403, 'This route is restricted to admin users');
+  return next();
+};
