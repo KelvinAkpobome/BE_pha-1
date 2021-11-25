@@ -3,7 +3,7 @@
 // eslint-disable-next-line no-unused-vars
 const { request, response } = require('express');
 const dotenv = require('dotenv');
-const logger = require('./logger.js');
+const logger = require('./logger');
 
 // load config
 dotenv.config({ path: './config/config.env' });
@@ -49,7 +49,7 @@ const sendErrorProd = (err, req, res) => {
     // 2) Send generic message
     return res.status(500).json({
       status: 'error',
-      message: 'Something went very wrong!',
+      message: 'Ooops.....Something went wrong!',
     });
   }
 

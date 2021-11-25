@@ -11,11 +11,11 @@ exports.signJWT = (data, time = '1d') => {
 
 exports.verifyJWT = (token) => {
   const key = process.env.JWT_SECRET;
-  const decode = jwt.verify(token, key, (err, decoded) => {
+  return jwt.verify(token, key, (err, decoded) => {
     if (err) {
-      return err;
+      // console.log(err.message)
+      return new Error(`${err}`);
     }
     return decoded;
   });
-  return decode;
 };

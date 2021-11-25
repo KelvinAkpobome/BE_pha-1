@@ -11,6 +11,7 @@ class AppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 }
+
 const errorResMsg = (res, code, message) =>
   res.status(code).json({
     status: 'error',
@@ -20,7 +21,7 @@ const errorResMsg = (res, code, message) =>
 const successResMsg = (res, code, data) =>
   res.status(code).json({
     status: 'success',
-    data: data.message,
+    data,
   });
 
 const sessionSuccessResMsg = (res, message, code, token, user) =>
@@ -34,7 +35,7 @@ const sessionSuccessResMsg = (res, message, code, token, user) =>
     },
   });
 
-module.exports.errorResMsg = AppError;
+module.exports.AppError = AppError;
 module.exports.errorResMsg = errorResMsg;
 module.exports.successResMsg = successResMsg;
 module.exports.sessionSuccessResMsg = sessionSuccessResMsg;

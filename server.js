@@ -1,11 +1,14 @@
 /* eslint-disable no-console */
 const http = require('http');
+const dotenv = require('dotenv');
+
+dotenv.config();
 const { connectDB } = require('./config/db');
 
 const PORT = process.env.PORT || 4000;
 
 // fully configured express app
-configuredApp = require('./configure');
+const configuredApp = require('./configure');
 
 // connection to db
 connectDB().catch(console.dir);
@@ -25,9 +28,9 @@ const shutdown = () => {
     console.info(`Express server shutting down on port ${PORT}`);
   });
 };
+// boot();
 if (require.main === module) {
-  boot(); // "node app.js" command
-} else {
-  exports.boot = boot;
-  exports.shutdown = shutdown;
+  boot();
 }
+exports.shutdown = shutdown;
+exports.boot = boot;

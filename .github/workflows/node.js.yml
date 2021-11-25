@@ -5,7 +5,7 @@ name: Node.js CI
 
 on:
   push:
-     branches: [ dev ]
+     branches: [ main ]
   pull_request:
     branches: [ dev ]
 
@@ -29,9 +29,6 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run build --if-present
-    - name: Check if server listens for requests
-      run: |
-       npm run test:server
     - name: Run Controller test 
       run: |
         npm run test:controllers
